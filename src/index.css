@@ -1,0 +1,184 @@
+@import 'tailwindcss';
+
+/*
+ * Brand palette — the single place to change colors.
+ * Components never use raw hex values; they use the Tailwind tokens mapped
+ * below (bg-card, text-accent, border-line, …).
+ */
+:root {
+  --primary: #d6aa8d;
+  --primary-hover: #c99578;
+  --primary-soft: #f0d7c6; /* light tint, only used inside the accent gradient */
+
+  --background: #0d0d0d;
+  --background-secondary: #151515;
+  --card: #1b1918;
+  --card-hover: #211e1c;
+
+  --foreground: #f5f1ed;
+  --muted: #a9a09a;
+  --subtle: #908780; /* tertiary text — 4.9:1 on --card, 5.6:1 on --background */
+
+  --border-soft: rgba(214, 170, 141, 0.12); /* card default */
+  --border: rgba(214, 170, 141, 0.18);
+  --border-hover: rgba(214, 170, 141, 0.4);
+
+  --primary-glow: rgba(214, 170, 141, 0.2);
+}
+
+@theme inline {
+  --color-bg: var(--background);
+  --color-bg-elevated: var(--background-secondary);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-fg: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-line-soft: var(--border-soft);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-hover);
+  --color-accent: var(--primary);
+  --color-accent-hover: var(--primary-hover);
+  --color-accent-soft: var(--primary-soft);
+  --color-glow: var(--primary-glow);
+}
+
+@theme {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+
+  --animate-drift: drift 26s ease-in-out infinite alternate;
+  --animate-pulse-dot: pulse-dot 2.6s ease-in-out infinite;
+  --animate-flow-y: flow-y 1.8s linear infinite;
+
+  @keyframes drift {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(3%, -4%, 0) scale(1.06); }
+    100% { transform: translate3d(-4%, 3%, 0) scale(0.97); }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(214 170 141 / 0.5); }
+    50% { box-shadow: 0 0 0 5px rgb(214 170 141 / 0); }
+  }
+  @keyframes flow-y {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(400%); }
+  }
+}
+
+/* Warm accent gradient for a few key words — tints of the primary only */
+@utility text-gradient {
+  background-image: linear-gradient(100deg, var(--primary-soft) 0%, var(--primary) 55%, var(--primary-hover) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Serif italic accent word inside headings */
+@utility accent-word {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--primary);
+}
+
+/* The one card surface used across the site */
+@utility card {
+  background-color: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.875rem;
+}
+
+/* Hover state for interactive cards (lift is done with Motion) */
+@utility card-interactive {
+  transition:
+    border-color 250ms ease,
+    box-shadow 300ms ease,
+    background-color 250ms ease;
+  &:hover,
+  &:focus-within {
+    border-color: var(--border-hover);
+    box-shadow:
+      0 0 0 1px rgb(214 170 141 / 0.04),
+      0 20px 50px -28px var(--primary-glow),
+      0 0 40px -18px var(--primary-glow);
+  }
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(214 170 141 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(214 170 141 / 0.05) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@utility bg-dots {
+  background-image: radial-gradient(rgb(214 170 141 / 0.12) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Navbar surface once scrolled */
+@utility glass {
+  background-color: rgb(13 13 13 / 0.78);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--background);
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    /* Warm glow at the top of the page + an almost invisible film grain */
+    background:
+      radial-gradient(ellipse 70rem 40rem at 50% -12rem, rgb(214 170 141 / 0.12), transparent 70%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: rgb(214 170 141 / 0.35);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  a,
+  button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  section[id] {
+    scroll-margin-top: 5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -3,17 +3,19 @@ import { cn } from '../utils/format.js'
 
 /*
  * Abstract orbital system for the hero: two thin tilted ellipses with a few
- * warm nodes travelling along them. Nodes ride the exact same path via CSS
- * `offset-path`, so the drawing and the motion can never drift apart.
+ * warm nodes sitting on them. The only motion is one slow CSS rotation of the
+ * whole system — a single compositor-only transform. (Nodes used to travel
+ * along an `offset-path`, but offset-distance animates on the main thread and
+ * forced a style recalculation every frame.)
  * Everything lives in a fixed 720px box; scale it with CSS, not by resizing.
  */
 const SIZE = 720
 const C = SIZE / 2
 
 const ORBITS = [
-  { rx: 330, ry: 112, tilt: -14, duration: 90, nodes: [0, 48], lead: 0 },
+  { rx: 330, ry: 112, tilt: -14, nodes: [0, 48], lead: 0 },
   // Secondary orbit is desktop-only — mobile gets a single, quieter ellipse.
-  { rx: 248, ry: 170, tilt: 32, duration: 130, nodes: [22], dashed: true, reverse: true, className: 'max-lg:hidden' },
+  { rx: 248, ry: 170, tilt: 32, duration: 130, nodes: [22], dashed: true, className: 'max-lg:hidden' },
 ]
 
 function ellipsePath(rx, ry) {
@@ -26,7 +28,7 @@ export default function OrbitalGraphic({ className, style }) {
       aria-hidden="true"
       style={{ width: SIZE, height: SIZE, ...style }}
       className={cn(
-        'pointer-events-none absolute [mask-image:radial-gradient(closest-side,black_40%,transparent_100%)]',
+        'pointer-events-none absolute will-change-transform [mask-image:radial-gradient(closest-side,black_40%,transparent_100%)]',
         className,
       )}
     >
@@ -41,7 +43,7 @@ export default function OrbitalGraphic({ className, style }) {
   )
 }
 
-function Orbit({ rx, ry, tilt, duration, nodes, lead, dashed, reverse, className }) {
+function Orbit({ rx, ry, tilt, nodes, lead, dashed, className }) {
   const d = ellipsePath(rx, ry)
   return (
     <div className={cn('absolute inset-0', className)} style={{ transform: `rotate(${tilt}deg)` }}>
@@ -55,18 +57,17 @@ function Orbit({ rx, ry, tilt, duration, nodes, lead, dashed, reverse, className
           vectorEffect="non-scaling-stroke"
         />
       </svg>
-      {nodes.map((offset) => (
-        <span
-          key={offset}
-          className={cn('orbit-node animate-orbit', offset === lead && 'orbit-node-lead')}
-          style={{
-            offsetPath: `path('${d}')`,
-            '--o': `${offset}%`,
-            animationDuration: `${duration}s`,
-            animationDirection: reverse ? 'reverse' : 'normal',
-          }}
-        />
-      ))}
+      {nodes.map((offset) => {
+        // Point on the ellipse at this fraction of a turn (computed once, at render).
+        const t = (offset / 100) * Math.PI * 2 + Math.PI
+        return (
+          <span
+            key={offset}
+            className={cn('orbit-node', offset === lead && 'orbit-node-lead')}
+            style={{ left: C + rx * Math.cos(t), top: C + ry * Math.sin(t) }}
+          />
+        )
+      })}
     </div>
   )
 }

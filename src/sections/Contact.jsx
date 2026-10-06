@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowUpRight, Check, Copy, Mail, MapPin, Phone } from 'lucide-react'
 import Section, { Accent } from '../components/Section.jsx'
-import Reveal, { EASE, StaggerGroup } from '../components/Reveal.jsx'
+import Reveal, { StaggerGroup } from '../components/Reveal.jsx'
 import Card from '../components/Card.jsx'
 import ButtonLink, { ButtonIcon } from '../components/Button.jsx'
 import BrandIcon from '../components/BrandIcon.jsx'
@@ -87,7 +87,7 @@ export default function Contact({ index, profile, links }) {
                   as="li"
                   variants={CALM_ITEM}
                   interactive
-                  lift={{ y: -2, transition: { duration: 0.25, ease: EASE } }}
+                  lift={2}
                   className="group/card"
                 >
                   <a
@@ -148,10 +148,8 @@ function CopyEmail({ email }) {
     <motion.button
       type="button"
       onClick={copy}
-      // Matches ButtonLink's secondary variant and hover motion.
-      whileHover={{ y: -2, scale: 1.015, transition: { duration: 0.25, ease: EASE } }}
-      whileTap={{ y: 0, scale: 0.98, transition: { duration: 0.12 } }}
-      className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-accent/30 bg-bg/40 px-6 text-[0.9375rem] font-medium text-fg backdrop-blur-sm transition-[background-color,border-color,color] duration-250 ease-out hover:border-accent/70 hover:bg-accent/[0.07] hover:text-accent"
+      // Matches ButtonLink's secondary variant and its CSS hover lift.
+      className="btn-lift inline-flex h-12 items-center justify-center gap-2 rounded-full border border-accent/30 bg-bg/70 px-6 text-[0.9375rem] font-medium text-fg hover:border-accent/70 hover:bg-accent/[0.07] hover:text-accent"
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span

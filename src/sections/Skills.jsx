@@ -1,5 +1,5 @@
 import Section, { Accent } from '../components/Section.jsx'
-import { EASE, StaggerGroup } from '../components/Reveal.jsx'
+import { StaggerGroup } from '../components/Reveal.jsx'
 import Card from '../components/Card.jsx'
 import NetworkGraphic from '../components/NetworkGraphic.jsx'
 import { categoryIcon } from '../utils/icons.js'
@@ -10,7 +10,6 @@ import { cn } from '../utils/format.js'
  * Each group is a quiet card with a light token list rather than a wall of
  * pills. Motion personality: fast — quick stagger, crisp 200ms hovers.
  */
-const HOVER = { y: -3, transition: { duration: 0.2, ease: EASE } }
 
 export default function Skills({ index, skills }) {
   return (
@@ -43,13 +42,13 @@ function SkillGroup({ group }) {
       as="li"
       staggered="fast"
       interactive
-      lift={HOVER}
-      className={cn('group/card relative overflow-hidden p-5 sm:p-6', wide && 'sm:col-span-2')}
+      lift={3}
+      className={cn('group/card relative p-5 sm:p-6', wide && 'sm:col-span-2')}
     >
       {/* Warm wash from the icon corner on hover (gradient, not a blur layer) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgb(214_170_141/0.09),transparent_55%)] opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
+        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_0%_0%,rgb(214_170_141/0.09),transparent_55%)] opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
       />
       <div className="relative mb-5 flex items-center gap-3">
         <span className="grid size-10 place-items-center rounded-xl border border-line-soft bg-accent/[0.05] text-muted transition-[color,border-color,background-color,transform] duration-200 ease-out group-hover/card:-rotate-6 group-hover/card:scale-105 group-hover/card:border-line-strong group-hover/card:bg-accent/10 group-hover/card:text-accent">

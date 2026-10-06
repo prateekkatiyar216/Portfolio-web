@@ -1,6 +1,6 @@
 import { ArrowUpRight, Award, GraduationCap, MapPin, Trophy } from 'lucide-react'
 import Section, { Accent } from '../components/Section.jsx'
-import { EASE, StaggerGroup } from '../components/Reveal.jsx'
+import { StaggerGroup } from '../components/Reveal.jsx'
 import Card from '../components/Card.jsx'
 
 /**
@@ -83,8 +83,8 @@ function EducationCard({ entry }) {
       as="li"
       staggered
       interactive
-      lift={{ y: -3, transition: { duration: 0.25, ease: EASE } }}
-      className="group/card relative overflow-hidden p-5 pl-6 sm:grid sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-6 sm:p-6 sm:pl-7"
+      lift={3}
+      className="group/card relative p-5 pl-6 sm:grid sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-6 sm:p-6 sm:pl-7"
     >
       <span
         aria-hidden="true"

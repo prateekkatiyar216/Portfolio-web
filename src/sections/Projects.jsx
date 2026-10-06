@@ -1,8 +1,8 @@
 import { useRef } from 'react'
-import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
+import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
 import { ArrowUpRight, Download, Star } from 'lucide-react'
 import Section, { Accent } from '../components/Section.jsx'
-import { EASE, StaggerGroup } from '../components/Reveal.jsx'
+import { EASE, StaggerGroup, TF_REST, tf } from '../components/Reveal.jsx'
 import Card from '../components/Card.jsx'
 import Badge from '../components/Badge.jsx'
 import BrandIcon from '../components/BrandIcon.jsx'
@@ -15,7 +15,6 @@ import { useFinePointer } from '../hooks/useMediaQuery.js'
  * (parallax at two depths) and to the pointer (a local warm light and a small
  * shift of its visual). Regular cards keep to a crisp hover.
  */
-const CARD_HOVER = { y: -4, transition: { duration: 0.25, ease: EASE } }
 
 export default function Projects({ index, projects, featured }) {
   const rest = featured ? projects.filter((p) => p.id !== featured.id) : projects
@@ -102,27 +101,32 @@ function FeaturedProject({ project }) {
   const backdropShift = useTransform(scrollYProgress, [0, 1], [-10, 10])
 
   // Pointer: a local warm light + a few px of drift on the visual.
+  // The light is a pre-painted gradient blob moved by transform (no per-frame repaint).
+  const SMOOTH = { stiffness: 120, damping: 25, mass: 0.5 }
   const px = useMotionValue(0.5)
   const py = useMotionValue(0.5)
   const light = useSpring(0, { stiffness: 120, damping: 24 })
-  const driftX = useSpring(useTransform(px, [0, 1], [-8, 8]), { stiffness: 120, damping: 20 })
-  const driftY = useSpring(useTransform(py, [0, 1], [-6, 6]), { stiffness: 120, damping: 20 })
+  const driftX = useSpring(useTransform(px, [0, 1], [-8, 8]), SMOOTH)
+  const driftY = useSpring(useTransform(py, [0, 1], [-6, 6]), SMOOTH)
   const contentY = useTransform([scrollShift, driftY], ([s, d]) => s + d)
-  const glowX = useTransform(px, (v) => v * 100)
-  const glowY = useTransform(py, (v) => v * 100)
-  const glow = useMotionTemplate`radial-gradient(32rem circle at ${glowX}% ${glowY}%, rgb(214 170 141 / 0.09), transparent 60%)`
+  const glowX = useSpring(0, SMOOTH)
+  const glowY = useSpring(0, SMOOTH)
 
   const onMove = (e) => {
     if (!interactive || e.pointerType !== 'mouse') return
     const r = e.currentTarget.getBoundingClientRect()
     px.set((e.clientX - r.left) / r.width)
     py.set((e.clientY - r.top) / r.height)
+    glowX.set(e.clientX - r.left)
+    glowY.set(e.clientY - r.top)
     light.set(1)
   }
+  const onEnter = () => interactive && document.documentElement.setAttribute('data-ui-focus', '')
   const onLeave = () => {
     px.set(0.5)
     py.set(0.5)
     light.set(0)
+    document.documentElement.removeAttribute('data-ui-focus')
   }
 
   return (
@@ -132,26 +136,33 @@ function FeaturedProject({ project }) {
       <Card
         as="article"
         interactive
-        lift={{ y: -3, transition: { duration: 0.3, ease: EASE } }}
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
+        lift={3}
+        initial={reduce ? { opacity: 0 } : { opacity: 0, transform: tf({ y: 30 }) }}
+        whileInView={reduce ? { opacity: 1 } : { opacity: 1, transform: TF_REST }}
         viewport={{ once: true, margin: '0px 0px -10% 0px' }}
-        transition={{ duration: 0.8, ease: EASE }}
+        transition={{ duration: 0.6, ease: EASE }}
         onPointerMove={onMove}
+        onPointerEnter={onEnter}
         onPointerLeave={onLeave}
-        className="group/card relative overflow-hidden rounded-2xl border-line"
+        className="group/card relative rounded-2xl border-line"
       >
         <div className="absolute inset-x-0 top-0 z-10 h-px bg-linear-to-r from-transparent via-accent/70 to-transparent" aria-hidden="true" />
         {interactive && (
-          <motion.div aria-hidden="true" style={{ backgroundImage: glow, opacity: light }} className="pointer-events-none absolute inset-0 z-10" />
+          <motion.div aria-hidden="true" style={{ opacity: light }} className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[inherit]">
+            <motion.div
+              style={{ x: glowX, y: glowY }}
+              className="absolute -top-[18rem] -left-[18rem] size-[36rem] rounded-full bg-[radial-gradient(closest-side,rgb(214_170_141/0.09),transparent)] will-change-transform"
+            />
+          </motion.div>
         )}
 
         <div className="grid lg:grid-cols-[1fr_1.1fr]">
           <FeaturedVisual
             project={project}
-            className="min-h-72 border-b border-line-soft lg:min-h-[27rem] lg:border-r lg:border-b-0"
-            contentStyle={reduce ? undefined : { x: interactive ? driftX : 0, y: interactive ? contentY : scrollShift }}
-            backdropStyle={reduce ? undefined : { y: backdropShift }}
+            className="min-h-72 rounded-t-2xl border-b border-line-soft lg:min-h-[27rem] lg:rounded-l-2xl lg:rounded-tr-none lg:border-r lg:border-b-0"
+            // Parallax only with a mouse (and motion allowed); touch devices get a still visual.
+            contentStyle={interactive ? { x: driftX, y: contentY } : undefined}
+            backdropStyle={interactive ? { y: backdropShift } : undefined}
           />
 
           <div className="flex flex-col p-6 sm:p-9 lg:p-11">
@@ -182,8 +193,8 @@ function FeaturedProject({ project }) {
 
 function ProjectCard({ project }) {
   return (
-    <Card as="li" staggered interactive lift={CARD_HOVER} className="group/card flex h-full flex-col overflow-hidden">
-      <ProjectVisual project={project} className="aspect-[16/9] border-b border-line-soft" />
+    <Card as="li" staggered interactive lift={4} className="group/card flex h-full flex-col">
+      <ProjectVisual project={project} className="aspect-[16/9] rounded-t-[inherit] border-b border-line-soft" />
       <div className="flex flex-1 flex-col p-5 sm:p-6">
         {project.category && <Badge className="mb-3 self-start">{project.category}</Badge>}
         <h3 className="text-lg font-semibold tracking-tight text-fg transition-colors duration-200 group-hover/card:text-accent">{project.name}</h3>

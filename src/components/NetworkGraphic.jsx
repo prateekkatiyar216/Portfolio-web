@@ -4,7 +4,8 @@ import { cn } from '../utils/format.js'
 /*
  * A small, hand-placed technical network used as section decor. Positions
  * are fixed (no randomness), so it renders identically every time.
- * One "hub" node breathes very slowly; everything else is static.
+ * Fully static: SVG children cannot be GPU-composited, so animating them would
+ * repaint the whole graphic every frame.
  */
 const LAYOUTS = {
   a: {
@@ -42,7 +43,7 @@ export default function NetworkGraphic({ variant = 'a', className }) {
           <line key={`${a}-${b}`} x1={nodes[a][0]} y1={nodes[a][1]} x2={nodes[b][0]} y2={nodes[b][1]} vectorEffect="non-scaling-stroke" />
         ))}
       </g>
-      <circle cx={hx} cy={hy} r="9" fill="none" stroke="rgb(214 170 141 / 0.08)" className="animate-node-breathe" />
+      <circle cx={hx} cy={hy} r="9" fill="none" stroke="rgb(214 170 141 / 0.08)" />
       <g fill="rgb(214 170 141 / 0.15)">
         {nodes.map(([x, y], i) => (
           <circle key={i} cx={x} cy={y} r={i === hub ? 3 : 2} />

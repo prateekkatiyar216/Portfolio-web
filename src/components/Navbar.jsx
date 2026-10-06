@@ -3,24 +3,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Download, Menu, X } from 'lucide-react'
 import { useActiveSection } from '../hooks/useActiveSection.js'
 import { useScrolled } from '../hooks/useScrolled.js'
-import { EASE, SPRING } from './Reveal.jsx'
+import { EASE } from './Reveal.jsx'
 
-// Navbar surface: transparent over the hero, a dark translucent bar once scrolling.
-// Fast (220ms) and color-only, so it never competes with the page.
-const SURFACE = {
-  clear: {
-    backgroundColor: 'rgba(13, 13, 13, 0)',
-    borderColor: 'rgba(214, 170, 141, 0)',
-    backdropFilter: 'blur(0px) saturate(100%)',
-    boxShadow: '0 12px 32px -24px rgba(0, 0, 0, 0)',
-  },
-  solid: {
-    backgroundColor: 'rgba(13, 13, 13, 0.72)',
-    borderColor: 'rgba(214, 170, 141, 0.1)',
-    backdropFilter: 'blur(14px) saturate(130%)',
-    boxShadow: '0 12px 32px -24px rgba(0, 0, 0, 0.9)',
-  },
-}
 const NAV_PILL = { type: 'spring', stiffness: 520, damping: 40, mass: 0.6 }
 import { cn } from '../utils/format.js'
 
@@ -56,13 +40,24 @@ export default function Navbar({ profile, sections, resumeUrl, resumeFileName })
       transition={{ duration: 0.7, ease: EASE }}
       className="fixed inset-x-0 top-0 z-50"
     >
-      <motion.div
-        initial={false}
-        animate={scrolled || open ? 'solid' : 'clear'}
-        variants={SURFACE}
-        transition={{ duration: 0.22, ease: 'easeOut' }}
-        className="border-b"
-      >
+      <div className="relative">
+        {/*
+          Surface: transparent over the hero; a dark translucent bar once scrolling.
+          It fades with opacity only (fast, 200ms) and is not mounted at the top, so
+          there is no backdrop blur to recompute while the hero is on screen.
+        */}
+        <AnimatePresence initial={false}>
+          {(scrolled || open) && (
+            <motion.div
+              aria-hidden="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="absolute inset-0 -z-10 border-b border-line-soft bg-bg/80 shadow-[0_12px_32px_-24px_rgb(0_0_0/0.9)] backdrop-blur-md"
+            />
+          )}
+        </AnimatePresence>
         <nav aria-label="Primary" className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
           <a href="#top" className="group flex items-center gap-2.5 rounded-lg" onClick={() => setOpen(false)}>
             <span className="grid size-9 place-items-center rounded-xl border border-line bg-card font-mono text-xs font-semibold tracking-tight text-accent transition-colors duration-200 group-hover:border-line-strong">
@@ -104,17 +99,14 @@ export default function Navbar({ profile, sections, resumeUrl, resumeFileName })
 
           <div className="flex items-center gap-2">
             {resumeUrl && (
-              <motion.a
+              <a
                 href={resumeUrl}
                 download={resumeFileName}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                transition={SPRING}
-                className="hidden h-9 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-bg transition-colors duration-200 hover:bg-accent-hover sm:inline-flex"
+                className="btn-lift hidden h-9 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-bg hover:bg-accent-hover sm:inline-flex"
               >
                 <Download className="size-3.5" aria-hidden="true" />
                 Resume
-              </motion.a>
+              </a>
             )}
             <button
               type="button"
@@ -138,7 +130,7 @@ export default function Navbar({ profile, sections, resumeUrl, resumeFileName })
             </button>
           </div>
         </nav>
-      </motion.div>
+      </div>
 
       <AnimatePresence>
         {open && (
@@ -148,9 +140,9 @@ export default function Navbar({ profile, sections, resumeUrl, resumeFileName })
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.15 } }}
             transition={{ duration: 0.22 }}
-            className="fixed inset-x-0 top-16 bottom-0 bg-bg/97 backdrop-blur-xl md:hidden"
+            className="fixed inset-x-0 top-16 bottom-0 bg-bg/97 md:hidden"
           >
-            <div aria-hidden="true" className="pointer-events-none absolute -top-10 right-0 size-72 rounded-full bg-accent/10 blur-[90px]" />
+            <div aria-hidden="true" className="pointer-events-none absolute -top-24 -right-16 size-96 rounded-full bg-[radial-gradient(closest-side,rgb(214_170_141/0.1),transparent)]" />
             <motion.ul
               initial="hidden"
               animate="show"

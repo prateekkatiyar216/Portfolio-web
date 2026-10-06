@@ -1,7 +1,7 @@
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { projectIcon } from '../utils/icons.js'
 import { cn, hashUnit } from '../utils/format.js'
-import { EASE } from './Reveal.jsx'
+import { EASE, TF_REST, calmVariants, tf } from './Reveal.jsx'
 
 /**
  * Image area of a project card. Uses the project's image when one exists
@@ -220,13 +220,17 @@ function CodeVisual({ seed }) {
  * stages inside a minimal app window. `contentStyle` / `backdropStyle` take
  * Motion values from the parent for parallax at two depths.
  */
+const STAGE = { hidden: { opacity: 0, transform: tf({ x: -10 }) }, show: { opacity: 1, transform: TF_REST, transition: { duration: 0.5, ease: EASE } } }
+const STAGE_REDUCED = calmVariants(STAGE)
+
 export function FeaturedVisual({ project, className, contentStyle, backdropStyle }) {
+  const reduce = useReducedMotion()
   if (project.image) return <ProjectVisual project={project} className={className} />
   const Icon = projectIcon(project)
 
   return (
     <div aria-hidden="true" className={cn('relative isolate overflow-hidden bg-bg-elevated', className)}>
-      <motion.div style={backdropStyle} className="absolute -inset-8">
+      <motion.div style={backdropStyle} className={cn('absolute -inset-8', backdropStyle && 'will-change-transform')}>
         <div className="absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_center,black_15%,transparent_72%)]" />
         <div className="absolute -top-20 left-1/2 size-80 -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(214_170_141/0.22),transparent)]" />
       </motion.div>
@@ -239,7 +243,7 @@ export function FeaturedVisual({ project, className, contentStyle, backdropStyle
           <span className="ml-3 font-mono text-[0.7rem] text-subtle">~/projects/{project.slug}</span>
         </div>
 
-        <motion.div style={contentStyle} className="flex flex-1 flex-col justify-center py-6">
+        <motion.div style={contentStyle} className={cn('flex flex-1 flex-col justify-center py-6', contentStyle && 'will-change-transform')}>
           <motion.ol
             initial="hidden"
             whileInView="show"
@@ -248,10 +252,7 @@ export function FeaturedVisual({ project, className, contentStyle, backdropStyle
             className="mx-auto w-full max-w-xs transition-transform duration-500 ease-out group-hover/card:scale-[1.03]"
           >
             {project.stack.map((item, i) => (
-              <motion.li
-                key={item}
-                variants={{ hidden: { opacity: 0, x: -10 }, show: { opacity: 1, x: 0, transition: { duration: 0.5, ease: EASE } } }}
-              >
+              <motion.li key={item} variants={reduce ? STAGE_REDUCED : STAGE}>
                 {i > 0 && (
                   <div className="relative mx-auto h-6 w-px overflow-hidden bg-line">
                     <span className="absolute inset-x-0 top-0 h-2 animate-flow-y bg-accent" style={{ animationDelay: `${i * 0.3}s` }} />

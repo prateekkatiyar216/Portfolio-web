@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react'
-import { EASE } from './Reveal.jsx'
+import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react'
+import { EASE, TF_REST, tf } from './Reveal.jsx'
 import { useFinePointer, useMediaQuery } from '../hooks/useMediaQuery.js'
 import { cn } from '../utils/format.js'
 
@@ -16,8 +16,10 @@ import { cn } from '../utils/format.js'
  * Idle loops (chip float, caret, scan light) are CSS, so they cost no JS per frame.
  */
 
-const TILT_SPRING = { stiffness: 140, damping: 22, mass: 0.7 }
-const CHIP_SPRING = { stiffness: 160, damping: 18, mass: 0.5 }
+// Soft, well-damped springs: smooth rather than twitchy, no overshoot wobble.
+const TILT_SPRING = { stiffness: 120, damping: 25, mass: 0.6 }
+const GLARE_SPRING = { stiffness: 180, damping: 30, mass: 0.5 }
+const CHIP_SPRING = { stiffness: 140, damping: 22, mass: 0.5 }
 const MAX_TILT = 2 // deg
 const CHIP_PULL = 6 // px, at zero distance
 const CHIP_RANGE = 220 // px, pointer influence radius
@@ -45,17 +47,18 @@ export default function ProfileCard({ profile, current, education, zoneRef, dela
   const cardRef = useRef(null)
   const chips = useRef([])
 
-  // Pointer position relative to the card: -1…1 per axis (clamped), and % for the reflection.
+  // Pointer position relative to the card: -1…1 per axis (clamped), and px for the reflection.
   const nx = useMotionValue(0)
   const ny = useMotionValue(0)
   const rotateX = useSpring(useTransform(ny, [-1, 1], [MAX_TILT, -MAX_TILT]), TILT_SPRING)
   const rotateY = useSpring(useTransform(nx, [-1, 1], [-MAX_TILT, MAX_TILT]), TILT_SPRING)
   const lift = useSpring(useTransform(ny, [-1, 1], [-3, 1]), TILT_SPRING)
 
-  const gx = useMotionValue(50)
-  const gy = useMotionValue(0)
+  // Reflection: a pre-painted gradient blob moved with transforms (re-building a
+  // gradient string per frame would repaint the whole card every frame).
+  const gx = useSpring(0, GLARE_SPRING)
+  const gy = useSpring(0, GLARE_SPRING)
   const glare = useSpring(0, { stiffness: 80, damping: 20 })
-  const reflection = useMotionTemplate`radial-gradient(26rem circle at ${gx}% ${gy}%, rgb(245 241 237 / 0.06), transparent 55%)`
 
   const register = useCallback((i, api) => {
     chips.current[i] = api
@@ -67,6 +70,7 @@ export default function ProfileCard({ profile, current, education, zoneRef, dela
 
     let frame = 0
     let last = null
+    let focused = false
     const update = () => {
       frame = 0
       const card = cardRef.current
@@ -76,10 +80,15 @@ export default function ProfileCard({ profile, current, education, zoneRef, dela
       const clamp = (v) => Math.max(-1, Math.min(1, v))
       nx.set(clamp((x - (r.left + r.width / 2)) / r.width))
       ny.set(clamp((y - (r.top + r.height / 2)) / r.height))
-      gx.set(((x - r.left) / r.width) * 100)
-      gy.set(((y - r.top) / r.height) * 100)
+      gx.set(x - r.left)
+      gy.set(y - r.top)
       const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
       glare.set(inside ? 1 : 0.35)
+      // Foreground has the visitor's attention: let ambient loops rest (see index.css).
+      if (inside !== focused) {
+        focused = inside
+        document.documentElement.toggleAttribute('data-ui-focus', inside)
+      }
       chips.current.forEach((chip) => chip?.track(x, y))
     }
     const move = (e) => {
@@ -92,6 +101,8 @@ export default function ProfileCard({ profile, current, education, zoneRef, dela
       ny.set(0)
       glare.set(0)
       chips.current.forEach((chip) => chip?.reset())
+      focused = false
+      document.documentElement.removeAttribute('data-ui-focus')
     }
 
     zone.addEventListener('pointermove', move, { passive: true })
@@ -118,8 +129,8 @@ export default function ProfileCard({ profile, current, education, zoneRef, dela
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 36, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={reduce ? { opacity: 0 } : { opacity: 0, transform: tf({ y: 36, scale: 0.97 }) }}
+      animate={reduce ? { opacity: 1 } : { opacity: 1, transform: TF_REST }}
       transition={{ duration: 1.1, ease: EASE, delay }}
       className="relative mx-auto w-full max-w-md lg:max-w-none"
       aria-hidden="true"
@@ -129,15 +140,23 @@ export default function ProfileCard({ profile, current, education, zoneRef, dela
         <motion.div
           ref={cardRef}
           style={interactive ? { rotateX, rotateY, y: lift, transformPerspective: 1100 } : undefined}
-          className="relative will-change-transform"
+          className={cn('relative', interactive && 'will-change-transform')}
         >
           <div className="absolute -inset-px rounded-2xl bg-linear-to-br from-accent/35 via-accent/[0.04] to-accent/20" />
-          <div className="absolute -inset-8 -z-10 rounded-[2rem] bg-accent/[0.06] blur-2xl" />
+          {/* Soft halo: a radial gradient, not a filter blur (blur layers are costly to re-raster) */}
+          <div className="absolute -inset-12 -z-10 rounded-[3rem] bg-[radial-gradient(closest-side,rgb(214_170_141/0.09),transparent)]" />
 
           <div className="relative overflow-hidden rounded-2xl bg-card shadow-[0_40px_80px_-40px_rgb(0_0_0/0.9)]">
             {/* Top-edge sheen + pointer reflection */}
             <div className="absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-fg/20 to-transparent" />
-            {interactive && <motion.div style={{ backgroundImage: reflection, opacity: glare }} className="pointer-events-none absolute inset-0" />}
+            {interactive && (
+              <motion.div style={{ opacity: glare }} className="pointer-events-none absolute inset-0">
+                <motion.div
+                  style={{ x: gx, y: gy }}
+                  className="absolute -top-[14rem] -left-[14rem] size-[28rem] rounded-full bg-[radial-gradient(closest-side,rgb(245_241_237/0.06),transparent)] will-change-transform"
+                />
+              </motion.div>
+            )}
             {!reduce && <ScanLight delay={delay + 1.6} />}
 
             <div className="flex items-center gap-1.5 border-b border-line-soft px-4 py-3">
@@ -286,7 +305,7 @@ function DockedChip({ index, label, dock, float, animated, register, delay }) {
         >
           <span
             className={cn(
-              'block rounded-full border border-line bg-bg-elevated/90 px-3 py-1 font-mono text-[0.72rem] whitespace-nowrap text-accent shadow-[0_10px_30px_-12px_rgb(0_0_0/0.8)] backdrop-blur',
+              'block rounded-full border border-line bg-bg-elevated px-3 py-1 font-mono text-[0.72rem] whitespace-nowrap text-accent shadow-[0_10px_30px_-12px_rgb(0_0_0/0.8)]',
               animated && 'animate-float-y',
             )}
             style={{ '--float-y': `${float.y}px`, '--float-dy': `${float.dy}s`, animationDelay: `-${float.phase}s` }}

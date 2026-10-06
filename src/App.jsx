@@ -10,9 +10,13 @@ import Skills from './sections/Skills.jsx'
 import Education from './sections/Education.jsx'
 import Contact from './sections/Contact.jsx'
 import { visibleSections } from './config/navigation.js'
+import { usePauseOffscreen } from './hooks/usePauseOffscreen.js'
+import { useScrollingFlag } from './hooks/useScrollingFlag.js'
 
 export default function App({ data }) {
   const sections = visibleSections(data)
+  usePauseOffscreen()
+  useScrollingFlag()
   // Section numbers ("01", "02"…) follow whichever sections are actually shown.
   const indexOf = (id) => String(sections.findIndex((s) => s.id === id) + 1).padStart(2, '0')
   const has = (id) => sections.some((s) => s.id === id)

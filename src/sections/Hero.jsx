@@ -5,8 +5,9 @@ import ButtonLink, { ButtonIcon } from '../components/Button.jsx'
 import SocialLinks from '../components/SocialLinks.jsx'
 import OrbitalGraphic from '../components/OrbitalGraphic.jsx'
 import ProfileCard from '../components/ProfileCard.jsx'
-import { EASE } from '../components/Reveal.jsx'
+import { EASE, TF_REST, tf } from '../components/Reveal.jsx'
 import { highlightTerms } from '../utils/highlight.jsx'
+import { useFinePointer } from '../hooks/useMediaQuery.js'
 
 /*
  * Entrance timeline (seconds). One beat per idea — who, what, direction,
@@ -16,12 +17,12 @@ import { highlightTerms } from '../utils/highlight.jsx'
  */
 const T = { badge: 0.15, greeting: 0.32, name: 0.42, title: 0.95, intro: 1.1, cta: 1.25, meta: 1.4, card: 1.15, scroll: 2.4 }
 
-/** Fade + short rise, used by every hero line except the name. */
-function rise(delay, y = 16) {
+/** Fade + short rise, used by every hero line except the name. Full-transform keyframes run on the compositor. */
+function rise(delay, y = 16, reduce = false) {
   return {
-    initial: { opacity: 0, y },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.8, ease: EASE, delay },
+    initial: reduce ? { opacity: 0 } : { opacity: 0, transform: tf({ y }) },
+    animate: reduce ? { opacity: 1 } : { opacity: 1, transform: TF_REST },
+    transition: { duration: 0.7, ease: EASE, delay },
   }
 }
 
@@ -38,11 +39,12 @@ export default function Hero({ profile, links, current, education, skills, resum
   const intro = profile.tagline ?? firstSentence(profile.summary)
   const titleParts = profile.title ? profile.title.split(/\s*\/\s*/).filter(Boolean) : []
 
-  // Name words rise out of a mask and come into focus — the one "cinematic" moment.
+  // Name words rise out of a mask — the one "cinematic" moment. Transform + opacity only
+  // (an animated blur filter here re-rasterised two very large words every frame).
   const nameWord = (i) => ({
-    initial: { y: '108%', opacity: 0, filter: reduce ? 'none' : 'blur(10px)' },
-    animate: { y: '0%', opacity: 1, filter: reduce ? 'none' : 'blur(0px)' },
-    transition: { duration: 1.1, ease: EASE, delay: T.name + i * 0.14 },
+    initial: reduce ? { opacity: 0 } : { opacity: 0, transform: tf({ y: '108%' }) },
+    animate: reduce ? { opacity: 1 } : { opacity: 1, transform: TF_REST },
+    transition: { duration: 1, ease: EASE, delay: T.name + i * 0.14 },
   })
 
   return (
@@ -59,10 +61,10 @@ export default function Hero({ profile, links, current, education, skills, resum
         <div>
           {current && (
             <motion.p
-              {...rise(T.badge, 10)}
-              className="mb-8 inline-flex max-w-full items-center gap-2.5 rounded-2xl border border-line bg-card/50 py-1.5 pr-4 pl-3 text-xs leading-snug text-muted backdrop-blur-sm sm:rounded-full sm:text-[0.8rem]"
+              {...rise(T.badge, 10, reduce)}
+              className="mb-8 inline-flex max-w-full items-center gap-2.5 rounded-2xl border border-line bg-card/80 py-1.5 pr-4 pl-3 text-xs leading-snug text-muted sm:rounded-full sm:text-[0.8rem]"
             >
-              <span className="size-1.5 shrink-0 animate-pulse-dot rounded-full bg-accent" aria-hidden="true" />
+              <span className="size-1.5 shrink-0 pulse-dot rounded-full bg-accent" aria-hidden="true" />
               <span>
                 Currently <span className="text-fg">{current.role}</span>
                 {current.organization && <> at {current.organization}</>}
@@ -70,7 +72,7 @@ export default function Hero({ profile, links, current, education, skills, resum
             </motion.p>
           )}
 
-          <motion.p {...rise(T.greeting, 10)} className="flex items-center gap-3 font-mono text-sm tracking-wide text-accent">
+          <motion.p {...rise(T.greeting, 10, reduce)} className="flex items-center gap-3 font-mono text-sm tracking-wide text-accent">
             <span className="h-px w-6 bg-accent/50" aria-hidden="true" />
             Hi, I&apos;m
           </motion.p>
@@ -97,7 +99,7 @@ export default function Hero({ profile, links, current, education, skills, resum
 
           {titleParts.length > 0 && (
             <motion.p
-              {...rise(T.title)}
+              {...rise(T.title, 16, reduce)}
               className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-lg font-medium tracking-tight text-fg/90 sm:text-[1.375rem]"
             >
               {/* Separators trail their word, so a wrapped line never starts with "/" */}
@@ -115,12 +117,12 @@ export default function Hero({ profile, links, current, education, skills, resum
           )}
 
           {intro && (
-            <motion.p {...rise(T.intro)} className="mt-5 max-w-[34rem] text-base leading-relaxed text-muted sm:text-[1.0625rem]">
+            <motion.p {...rise(T.intro, 16, reduce)} className="mt-5 max-w-[34rem] text-base leading-relaxed text-muted sm:text-[1.0625rem]">
               {highlightTerms(intro, skills.all)}
             </motion.p>
           )}
 
-          <motion.div {...rise(T.cta)} className="mt-9 flex flex-col gap-3 min-[440px]:flex-row">
+          <motion.div {...rise(T.cta, 16, reduce)} className="mt-9 flex flex-col gap-3 min-[440px]:flex-row">
             {resumeUrl && (
               <ButtonLink href={resumeUrl} download={resumeFileName}>
                 <ButtonIcon icon={Download} direction="down" />
@@ -141,7 +143,7 @@ export default function Hero({ profile, links, current, education, skills, resum
             )}
           </motion.div>
 
-          <motion.div {...rise(T.meta, 8)} className="mt-9 flex flex-wrap items-center gap-x-5 gap-y-3">
+          <motion.div {...rise(T.meta, 8, reduce)} className="mt-9 flex flex-wrap items-center gap-x-5 gap-y-3">
             <SocialLinks links={links} className="-ml-3" />
             {profile.location && (
               <>
@@ -178,12 +180,14 @@ export default function Hero({ profile, links, current, education, skills, resum
 
 function HeroBackground() {
   const reduce = useReducedMotion()
+  // Touch devices: no decorative scroll parallax — smooth scrolling comes first.
+  const still = reduce || !useFinePointer()
   const { scrollY } = useScroll()
   // Glow drifts down slower than the page — a gentle depth cue.
-  const glowY = useTransform(scrollY, [0, 800], [0, reduce ? 0 : 160])
+  const glowY = useTransform(scrollY, [0, 800], [0, still ? 0 : 160])
   const glowOpacity = useTransform(scrollY, [0, 700], [1, 0.35])
   // Orbit sits "further away" than the glow: it trails the page less.
-  const orbitY = useTransform(scrollY, [0, 800], [0, reduce ? 0 : 90])
+  const orbitY = useTransform(scrollY, [0, 800], [0, still ? 0 : 90])
   const orbitOpacity = useTransform(scrollY, [0, 600], [1, 0])
 
   return (
@@ -193,7 +197,7 @@ function HeroBackground() {
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black_70%,transparent)]"
     >
-      <motion.div style={{ y: glowY, opacity: glowOpacity }} className="absolute inset-0">
+      <motion.div style={{ y: glowY, opacity: glowOpacity }} className={`absolute inset-0 ${still ? '' : 'will-change-transform'}`}>
         {/* Signature light source — wanders on two unsynced CSS loops (31s / 23s), so it never visibly repeats */}
         <div className="absolute top-[-18rem] left-1/2 h-[42rem] w-[min(78rem,170vw)] -translate-x-1/2">
           <div className="size-full animate-wander-x">

@@ -28,11 +28,13 @@ const SCENES = {
   contact: { a: [50, 96], b: [50, 18], warmth: 1, grid: 0.45, major: 0, rings: 0 },
 }
 const SCENE_SPRING = { stiffness: 14, damping: 12, mass: 1 } // overdamped: no wobble, ~3s settle
-const CURSOR_SPRING = { stiffness: 90, damping: 26, mass: 0.6 }
+const CURSOR_SPRING = { stiffness: 120, damping: 25, mass: 0.5 } // smooth, no jitter
 const GRID = 64
 
 export default function AmbientBackground() {
   const reduce = useReducedMotion()
+  // Touch devices get the lighter profile: no scroll-linked grid movement (smooth scrolling first).
+  const fine = useFinePointer()
   const start = SCENES.top
 
   const ax = useSpring(start.a[0], SCENE_SPRING)
@@ -83,7 +85,7 @@ export default function AmbientBackground() {
 
       {/* Architectural grid + major lines every second cell */}
       <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_85%_70%_at_50%_42%,black_15%,transparent_100%)]">
-        <motion.div style={{ y: reduce ? 0 : gridY }} className="absolute inset-x-0 -top-32 -bottom-32 will-change-transform">
+        <motion.div style={{ y: reduce || !fine ? 0 : gridY }} className={`absolute inset-x-0 -top-32 -bottom-32 ${fine ? 'will-change-transform' : ''}`}>
           <motion.div style={{ opacity: grid }} className="absolute inset-0 bg-grid" />
           <motion.div style={{ opacity: major }} className="absolute inset-0 bg-grid-major" />
         </motion.div>
@@ -111,10 +113,10 @@ export default function AmbientBackground() {
       </motion.svg>
 
       {/* Light field — two soft lights that relocate per section and breathe slowly */}
-      <motion.div style={{ transform: lightA, opacity: warmth }} className="absolute top-0 left-0 will-change-transform">
+      <motion.div style={{ transform: lightA, opacity: warmth }} className="absolute top-0 left-0">
         <div className="size-[min(64rem,150vw)] animate-drift rounded-full bg-[radial-gradient(closest-side,rgb(214_170_141/0.08),rgb(214_170_141/0.03)_50%,transparent)]" />
       </motion.div>
-      <motion.div style={{ transform: lightB, opacity: warmthB }} className="absolute top-0 left-0 will-change-transform">
+      <motion.div style={{ transform: lightB, opacity: warmthB }} className="absolute top-0 left-0">
         <div
           className="size-[min(44rem,120vw)] animate-drift rounded-full bg-[radial-gradient(closest-side,rgb(214_170_141/0.05),transparent)]"
           style={{ animationDelay: '-13s' }}

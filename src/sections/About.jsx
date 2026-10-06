@@ -1,7 +1,7 @@
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { Briefcase, GraduationCap, MapPin } from 'lucide-react'
 import Section, { Accent } from '../components/Section.jsx'
-import Reveal, { EASE, VIEWPORT } from '../components/Reveal.jsx'
+import Reveal, { EASE, TF_REST, VIEWPORT, calmVariants, tf } from '../components/Reveal.jsx'
 import CountUp from '../components/CountUp.jsx'
 import { highlightTerms } from '../utils/highlight.jsx'
 
@@ -12,9 +12,11 @@ import { highlightTerms } from '../utils/highlight.jsx'
  * Motion personality: slow, long fades with almost no travel.
  */
 const slow = { hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.25 } } }
-const slowItem = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 1.1, ease: EASE } } }
+const slowItem = { hidden: { opacity: 0, transform: tf({ y: 10 }) }, show: { opacity: 1, transform: TF_REST, transition: { duration: 0.9, ease: EASE } } }
+const slowItemReduced = calmVariants(slowItem)
 
 export default function About({ index, profile, skills, projects, experience, education, certifications }) {
+  const item = useReducedMotion() ? slowItemReduced : slowItem
   const current = experience.find((e) => e.current) ?? experience[0]
   const latestEducation = education[0]
 
@@ -91,7 +93,7 @@ export default function About({ index, profile, skills, projects, experience, ed
 
         <motion.aside initial="hidden" whileInView="show" viewport={VIEWPORT} variants={slow} className="space-y-10" aria-label="Profile facts">
           {facts.length > 0 && (
-            <motion.dl variants={slowItem} className="relative border-l border-line pl-6">
+            <motion.dl variants={item} className="relative border-l border-line pl-6">
               <span aria-hidden="true" className="absolute top-0 -left-px h-12 w-px bg-accent" />
               {facts.map(({ icon: Icon, label, value, detail }) => (
                 <div key={label} className="group border-b border-line-soft py-4 first:pt-0 last:border-b-0 last:pb-0">
@@ -109,7 +111,7 @@ export default function About({ index, profile, skills, projects, experience, ed
           )}
 
           {stats.length > 0 && (
-            <motion.div variants={slowItem}>
+            <motion.div variants={item}>
               <h3 className="mb-4 font-mono text-xs tracking-[0.18em] text-subtle uppercase">In numbers</h3>
               {/* Data points: hairline grid, no card chrome */}
               <dl className="grid grid-cols-2 border-t border-l border-line-soft">

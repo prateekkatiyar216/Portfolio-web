@@ -49,10 +49,7 @@
   --font-serif: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
 
   --animate-drift: drift 26s ease-in-out infinite alternate;
-  --animate-pulse-dot: pulse-dot 2.6s ease-in-out infinite;
   --animate-flow-y: flow-y 2.6s linear infinite;
-  --animate-orbit: orbit 90s linear infinite;
-  --animate-node-breathe: node-breathe 6s ease-in-out infinite;
   /* Ambient loops run as CSS (compositor) rather than JS, and are switched off
      by the reduced-motion rule at the bottom of this file. */
   --animate-wander-x: wander-x 31s ease-in-out infinite alternate;
@@ -69,22 +66,9 @@
     50% { transform: translate3d(3%, -4%, 0) scale(1.06); }
     100% { transform: translate3d(-4%, 3%, 0) scale(0.97); }
   }
-  @keyframes pulse-dot {
-    0%, 100% { box-shadow: 0 0 0 0 rgb(214 170 141 / 0.5); }
-    50% { box-shadow: 0 0 0 5px rgb(214 170 141 / 0); }
-  }
   @keyframes flow-y {
     from { transform: translateY(-100%); }
     to { transform: translateY(400%); }
-  }
-  /* Closed paths wrap past 100%, so each node can start from its own offset (--o). */
-  @keyframes orbit {
-    from { offset-distance: var(--o, 0%); }
-    to { offset-distance: calc(var(--o, 0%) + 100%); }
-  }
-  @keyframes node-breathe {
-    0%, 100% { opacity: 0.35; }
-    50% { opacity: 1; }
   }
   @keyframes wander-x {
     from { transform: translate3d(-5%, 0, 0); }
@@ -140,24 +124,81 @@
 
 /* The one card surface used across the site */
 @utility card {
+  position: relative;
   background-color: var(--card);
   border: 1px solid var(--border-soft);
   border-radius: 0.875rem;
 }
 
-/* Hover state for interactive cards (lift is done with Motion) */
+/*
+ * Hover state for interactive cards (lift is done with Motion).
+ * The warm shadow is painted once on a pseudo-element and faded with opacity —
+ * transitioning box-shadow itself would repaint the card every frame.
+ */
 @utility card-interactive {
   transition:
     border-color 250ms ease,
-    box-shadow 300ms ease,
-    background-color 250ms ease;
-  &:hover,
-  &:focus-within {
-    border-color: var(--border-hover);
+    translate 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 250ms ease-out;
     box-shadow:
       0 0 0 1px rgb(214 170 141 / 0.04),
       0 20px 50px -28px var(--primary-glow),
       0 0 40px -18px var(--primary-glow);
+  }
+  &:hover,
+  &:focus-within {
+    border-color: var(--border-hover);
+  }
+  &:hover {
+    translate: 0 var(--card-lift, -4px);
+  }
+  &:hover::after,
+  &:focus-within::after {
+    opacity: 1;
+  }
+}
+
+/*
+ * Hover lift for buttons and icon links: CSS translate/scale (compositor-only,
+ * no JS per hover). Separate properties from `transform`, so they compose with
+ * any entrance animation on the same element.
+ */
+@utility btn-lift {
+  transition:
+    background-color 200ms ease-out,
+    border-color 200ms ease-out,
+    color 200ms ease-out,
+    translate 200ms ease-out,
+    scale 200ms ease-out;
+  &:hover {
+    translate: 0 -2px;
+    scale: 1.015;
+  }
+  &:active {
+    translate: 0 0;
+    scale: 0.98;
+    transition-duration: 120ms;
+  }
+}
+
+/* "Live" dot: a ring that expands and fades (transform + opacity only, compositor-friendly) */
+@utility pulse-dot {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--primary);
+    pointer-events: none;
+    animation: pulse-ring 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   }
 }
 
@@ -194,16 +235,13 @@
   user-select: none;
 }
 
-/* Node travelling along an `offset-path` (see OrbitalGraphic) */
+/* Node sitting on an orbit path (see OrbitalGraphic); it moves only with the orbit's rotation */
 @utility orbit-node {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 4px;
   height: 4px;
+  margin: -2px 0 0 -2px;
   border-radius: 9999px;
-  offset-rotate: 0deg;
-  offset-distance: var(--o, 0%);
   background: rgb(214 170 141 / 0.55);
   box-shadow: 0 0 10px 1px rgb(214 170 141 / 0.25);
 }
@@ -211,6 +249,7 @@
 @utility orbit-node-lead {
   width: 6px;
   height: 6px;
+  margin: -3px 0 0 -3px;
   background: var(--primary);
   box-shadow:
     0 0 0 4px rgb(214 170 141 / 0.08),
@@ -291,7 +330,53 @@
   }
 }
 
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  70%,
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+/*
+ * Animation budget.
+ * 1. Sections scrolled out of view pause their CSS loops (set by usePauseOffscreen).
+ * 2. While the visitor works with a foreground element (profile card, featured
+ *    project), ambient loops pause so the interaction gets the frame budget.
+ * 3. Touch devices get a lighter ambient profile: the big background lights stay still.
+ */
+[data-offscreen] *,
+[data-offscreen] *::before,
+[data-offscreen] *::after {
+  animation-play-state: paused !important;
+}
+:root[data-ui-focus] .animate-drift,
+:root[data-ui-focus] .animate-wander-x,
+:root[data-ui-focus] .animate-wander-y,
+:root[data-ui-focus] .animate-turn {
+  animation-play-state: paused;
+}
+/* While actively scrolling, content under a stationary cursor shouldn't trigger hovers */
+:root[data-scrolling] body {
+  pointer-events: none;
+}
+@media (hover: none) {
+  .animate-drift {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .card-interactive:hover,
+  .btn-lift:hover,
+  .btn-lift:active {
+    translate: none;
+    scale: none;
+  }
   html {
     scroll-behavior: auto;
   }

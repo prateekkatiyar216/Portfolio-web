@@ -23,7 +23,8 @@ export default function Experience({ index, experience }) {
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: listRef, offset: ['start 65%', 'end 55%'] })
   const progress = useSpring(scrollYProgress, { stiffness: 90, damping: 24, mass: 0.4 })
-  const headTop = useTransform(progress, (p) => `${p * 100}%`)
+  // The head rides a full-height track; translateY(%) of the track = % of the rail. Transform only, no layout.
+  const headY = useTransform(progress, (p) => `${p * 100}%`)
   const headOpacity = useTransform(progress, [0, 0.02, 0.98, 1], [0, 1, 1, 0])
 
   return (
@@ -44,13 +45,12 @@ export default function Experience({ index, experience }) {
           <div className="absolute inset-0 bg-linear-to-b from-accent/20 via-line-soft to-transparent" />
           <motion.div
             style={{ scaleY: reduce ? 1 : progress }}
-            className="absolute inset-0 origin-top bg-linear-to-b from-accent via-accent/60 to-accent/10"
+            className="absolute inset-0 origin-top bg-linear-to-b from-accent via-accent/60 to-accent/10 will-change-transform"
           />
           {!reduce && (
-            <motion.span
-              style={{ top: headTop, opacity: headOpacity }}
-              className="absolute left-1/2 size-[7px] -translate-1/2 rounded-full bg-accent shadow-[0_0_14px_3px_rgb(214_170_141/0.45)]"
-            />
+            <motion.div style={{ y: headY, opacity: headOpacity }} className="absolute inset-0 will-change-transform">
+              <span className="absolute top-0 left-1/2 size-[7px] -translate-1/2 rounded-full bg-accent shadow-[0_0_14px_3px_rgb(214_170_141/0.45)]" />
+            </motion.div>
           )}
         </div>
 
@@ -101,11 +101,11 @@ function TimelineItem({ job, index }) {
         variants={nodeVariants}
         className="absolute top-1.5 left-0 z-10 grid size-[15px] place-items-center rounded-full border bg-bg md:left-52"
       >
-        <motion.span variants={coreVariants} className={cn('size-[5px] rounded-full bg-accent', job.current && 'animate-pulse-dot')} />
+        <motion.span variants={coreVariants} className={cn('size-[5px] rounded-full bg-accent', job.current && 'pulse-dot')} />
       </motion.span>
 
       <Reveal preset="directional" delay={0.1} className="md:pl-10">
-        <Card as="article" interactive lift={{ y: -3, transition: { duration: 0.25, ease: EASE } }} className="group/card p-5 sm:p-7">
+        <Card as="article" interactive lift={3} className="group/card p-5 sm:p-7">
           <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
             <div className="min-w-0">
               <h3 className="text-lg font-semibold tracking-tight text-fg sm:text-[1.375rem]">{job.role}</h3>

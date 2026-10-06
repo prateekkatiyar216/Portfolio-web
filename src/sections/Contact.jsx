@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowUpRight, Check, Copy, Mail, MapPin, Phone } from 'lucide-react'
 import Section, { Accent } from '../components/Section.jsx'
-import Reveal, { SPRING, StaggerGroup } from '../components/Reveal.jsx'
+import Reveal, { EASE, StaggerGroup } from '../components/Reveal.jsx'
 import Card from '../components/Card.jsx'
 import ButtonLink, { ButtonIcon } from '../components/Button.jsx'
 import BrandIcon from '../components/BrandIcon.jsx'
@@ -10,6 +10,7 @@ import BrandIcon from '../components/BrandIcon.jsx'
 /**
  * Contact via mailto: (no backend). Profile links from the Excel file are
  * listed as cards with their handles.
+ * Motion personality: calm — opacity-only fades, nothing travels.
  */
 export default function Contact({ index, profile, links }) {
   return (
@@ -17,6 +18,7 @@ export default function Contact({ index, profile, links }) {
       id="contact"
       index={index}
       eyebrow="Contact"
+      watermark="Contact"
       className="overflow-hidden"
       title={
         <>
@@ -30,10 +32,23 @@ export default function Contact({ index, profile, links }) {
       />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16">
-        <Reveal>
+        <Reveal preset="calm">
           <p className="max-w-lg text-lg leading-relaxed text-muted">
             Have a project, an opportunity, or just want to connect? My inbox is open.
           </p>
+
+          {profile.email && (
+            <a
+              href={`mailto:${profile.email}`}
+              className="group/link mt-8 inline-flex max-w-full items-center gap-2 text-[1.35rem] font-medium tracking-tight text-fg transition-colors duration-200 hover:text-accent sm:text-[1.75rem]"
+            >
+              <span className="link-underline min-w-0 pb-1 [overflow-wrap:anywhere]">{profile.email}</span>
+              <ArrowUpRight
+                className="size-5 shrink-0 text-accent transition-transform duration-250 ease-out group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 sm:size-6"
+                aria-hidden="true"
+              />
+            </a>
+          )}
 
           {profile.email && (
             <div className="mt-9 flex flex-col gap-3 min-[440px]:flex-row min-[440px]:items-center">
@@ -45,17 +60,10 @@ export default function Contact({ index, profile, links }) {
             </div>
           )}
 
-          <dl className="mt-10 space-y-4 text-[0.9375rem]">
-            {profile.email && (
-              <ContactRow icon={Mail} label="Email">
-                <a href={`mailto:${profile.email}`} className="inline-block py-1 break-all text-fg/90 underline-offset-4 transition-colors hover:text-accent hover:underline">
-                  {profile.email}
-                </a>
-              </ContactRow>
-            )}
+          <dl className="mt-10 space-y-4 border-t border-line-soft pt-6 text-[0.9375rem]">
             {profile.phone && (
               <ContactRow icon={Phone} label="Phone">
-                <a href={profile.phoneHref} className="inline-block py-1 text-fg/90 underline-offset-4 transition-colors hover:text-accent hover:underline">
+                <a href={profile.phoneHref} className="link-underline inline-block py-1 text-fg/90 hover:text-accent">
                   {profile.phone}
                 </a>
               </ContactRow>
@@ -72,8 +80,16 @@ export default function Contact({ index, profile, links }) {
           <div>
             <h3 className="mb-5 font-mono text-xs tracking-[0.18em] text-subtle uppercase">Find me online</h3>
             <StaggerGroup as="ul" className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
+              {/* calm: cards fade without travel (variants below override the default rise) */}
               {links.map((link) => (
-                <Card key={link.url} as="li" staggered interactive className="group/card">
+                <Card
+                  key={link.url}
+                  as="li"
+                  variants={CALM_ITEM}
+                  interactive
+                  lift={{ y: -2, transition: { duration: 0.25, ease: EASE } }}
+                  className="group/card"
+                >
                   <a
                     href={link.url}
                     target="_blank"
@@ -81,8 +97,8 @@ export default function Contact({ index, profile, links }) {
                     aria-label={`${link.label}${link.handle ? ` — ${link.handle}` : ''} (opens in a new tab)`}
                     className="flex items-center gap-3.5 rounded-[inherit] p-4"
                   >
-                    <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-line-soft bg-bg-elevated text-muted transition-colors duration-300 group-hover/card:border-line-strong group-hover/card:text-accent">
-                      <BrandIcon id={link.id} className="size-[18px]" />
+                    <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-line-soft bg-bg-elevated text-muted transition-[color,border-color,background-color] duration-250 group-hover/card:border-line-strong group-hover/card:bg-accent/[0.06] group-hover/card:text-accent">
+                      <BrandIcon id={link.id} className="icon-glow size-[18px]" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-fg">{link.label}</span>
@@ -102,6 +118,8 @@ export default function Contact({ index, profile, links }) {
     </Section>
   )
 }
+
+const CALM_ITEM = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.9, ease: 'easeOut' } } }
 
 function ContactRow({ icon: Icon, label, children }) {
   return (
@@ -130,10 +148,10 @@ function CopyEmail({ email }) {
     <motion.button
       type="button"
       onClick={copy}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.97 }}
-      transition={SPRING}
-      className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-accent/35 px-6 text-[0.9375rem] font-medium text-accent transition-colors duration-200 hover:border-accent hover:bg-accent/10"
+      // Matches ButtonLink's secondary variant and hover motion.
+      whileHover={{ y: -2, scale: 1.015, transition: { duration: 0.25, ease: EASE } }}
+      whileTap={{ y: 0, scale: 0.98, transition: { duration: 0.12 } }}
+      className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-accent/30 bg-bg/40 px-6 text-[0.9375rem] font-medium text-fg backdrop-blur-sm transition-[background-color,border-color,color] duration-250 ease-out hover:border-accent/70 hover:bg-accent/[0.07] hover:text-accent"
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span

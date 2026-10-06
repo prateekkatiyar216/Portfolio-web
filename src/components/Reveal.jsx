@@ -12,17 +12,36 @@ export const SPRING = { type: 'spring', stiffness: 380, damping: 30, mass: 0.7 }
 /** Card hover: lift + slight scale (border/glow comes from the `card-interactive` CSS utility). */
 export const hoverLift = { y: -4, scale: 1.01, transition: SPRING }
 
-const VIEWPORT = { once: true, margin: '0px 0px -10% 0px' }
+export const VIEWPORT = { once: true, margin: '0px 0px -10% 0px' }
 
-/** Fades + lifts its content in once, when scrolled into view. */
-export default function Reveal({ as = 'div', delay = 0, y = 30, className, children, ...props }) {
+/*
+ * Motion personalities — each section moves in its own way:
+ *   rise        default fade + lift
+ *   editorial   About: slow, long fade, barely any travel
+ *   directional Experience: enters from the timeline side
+ *   fast        Skills: short and snappy
+ *   calm        Contact: opacity only
+ */
+export const PRESETS = {
+  rise: { from: { opacity: 0, y: 30 }, transition: { duration: DURATION.base, ease: EASE } },
+  editorial: { from: { opacity: 0, y: 14 }, transition: { duration: 1.2, ease: EASE } },
+  directional: { from: { opacity: 0, x: -28 }, transition: { duration: 0.75, ease: EASE } },
+  fast: { from: { opacity: 0, y: 12 }, transition: { duration: 0.35, ease: EASE } },
+  calm: { from: { opacity: 0 }, transition: { duration: 1.1, ease: 'easeOut' } },
+}
+
+/** Fades its content in once, when scrolled into view, using a motion preset. */
+export default function Reveal({ as = 'div', preset = 'rise', delay = 0, y, className, children, ...props }) {
   const Component = motion[as] ?? motion.div
+  const { from, transition } = PRESETS[preset] ?? PRESETS.rise
+  const initial = y === undefined ? from : { ...from, y }
+  const settled = Object.fromEntries(Object.keys(initial).map((k) => [k, k === 'opacity' ? 1 : 0]))
   return (
     <Component
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={initial}
+      whileInView={settled}
       viewport={VIEWPORT}
-      transition={{ duration: DURATION.base, ease: EASE, delay }}
+      transition={{ ...transition, delay }}
       className={className}
       {...props}
     >
@@ -43,10 +62,26 @@ export const stagger = {
   },
 }
 
-export function StaggerGroup({ as = 'div', className, children, ...props }) {
+/** Snappier stagger for dense grids (Skills). */
+export const staggerFast = {
+  container: { hidden: {}, show: { transition: { staggerChildren: 0.035 } } },
+  item: {
+    hidden: { opacity: 0, y: 14, scale: 0.98 },
+    show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: EASE } },
+  },
+}
+
+export function StaggerGroup({ as = 'div', fast = false, className, children, ...props }) {
   const Component = motion[as] ?? motion.div
   return (
-    <Component variants={stagger.container} initial="hidden" whileInView="show" viewport={VIEWPORT} className={className} {...props}>
+    <Component
+      variants={(fast ? staggerFast : stagger).container}
+      initial="hidden"
+      whileInView="show"
+      viewport={VIEWPORT}
+      className={className}
+      {...props}
+    >
       {children}
     </Component>
   )

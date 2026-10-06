@@ -1,4 +1,5 @@
 import { MotionConfig } from 'motion/react'
+import AmbientBackground from './components/AmbientBackground.jsx'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import Hero from './sections/Hero.jsx'
@@ -26,6 +27,8 @@ export default function App({ data }) {
       >
         Skip to content
       </a>
+
+      <AmbientBackground />
 
       <Navbar profile={data.profile} sections={sections} resumeUrl={data.resumeUrl} resumeFileName={data.resumeFileName} />
 

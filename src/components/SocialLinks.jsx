@@ -19,9 +19,9 @@ export default function SocialLinks({ links, className, iconClassName = 'size-[1
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.92 }}
             transition={SPRING}
-            className="grid size-11 place-items-center rounded-full text-muted transition-colors duration-200 hover:bg-accent/10 hover:text-accent"
+            className="grid size-11 place-items-center rounded-full text-muted transition-colors duration-200 hover:bg-accent/[0.08] hover:text-accent"
           >
-            <BrandIcon id={link.id} className={iconClassName} />
+            <BrandIcon id={link.id} className={cn('icon-glow', iconClassName)} />
           </motion.a>
         </li>
       ))}

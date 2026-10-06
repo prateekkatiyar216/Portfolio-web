@@ -50,7 +50,19 @@
 
   --animate-drift: drift 26s ease-in-out infinite alternate;
   --animate-pulse-dot: pulse-dot 2.6s ease-in-out infinite;
-  --animate-flow-y: flow-y 1.8s linear infinite;
+  --animate-flow-y: flow-y 2.6s linear infinite;
+  --animate-orbit: orbit 90s linear infinite;
+  --animate-node-breathe: node-breathe 6s ease-in-out infinite;
+  /* Ambient loops run as CSS (compositor) rather than JS, and are switched off
+     by the reduced-motion rule at the bottom of this file. */
+  --animate-wander-x: wander-x 31s ease-in-out infinite alternate;
+  --animate-wander-y: wander-y 23s ease-in-out infinite alternate;
+  --animate-turn: turn 300s linear infinite;
+  --animate-float-x: float-x var(--float-dx, 9s) ease-in-out infinite;
+  --animate-float-y: float-y var(--float-dy, 6s) ease-in-out infinite;
+  --animate-caret: caret 1.06s linear infinite;
+  --animate-scan: scan 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  --animate-nudge: nudge 2.2s ease-in-out 3;
 
   @keyframes drift {
     0% { transform: translate3d(0, 0, 0) scale(1); }
@@ -64,6 +76,48 @@
   @keyframes flow-y {
     from { transform: translateY(-100%); }
     to { transform: translateY(400%); }
+  }
+  /* Closed paths wrap past 100%, so each node can start from its own offset (--o). */
+  @keyframes orbit {
+    from { offset-distance: var(--o, 0%); }
+    to { offset-distance: calc(var(--o, 0%) + 100%); }
+  }
+  @keyframes node-breathe {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+  }
+  @keyframes wander-x {
+    from { transform: translate3d(-5%, 0, 0); }
+    to { transform: translate3d(5%, 0, 0); }
+  }
+  @keyframes wander-y {
+    from { transform: translate3d(0, -4%, 0) scale(1); }
+    to { transform: translate3d(0, 8%, 0) scale(1.06); }
+  }
+  @keyframes turn {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes float-x {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(var(--float-x, 2px), 0, 0); }
+  }
+  @keyframes float-y {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, calc(var(--float-y, 4px) * -1), 0); }
+  }
+  /* Hard editor blink: fully on for half the cycle, fully off for the other half */
+  @keyframes caret {
+    0%, 49.9% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+  /* One sweep in the first quarter, then rest — reads as occasional, not constant */
+  @keyframes scan {
+    0% { transform: translateY(-30%); }
+    25%, 100% { transform: translateY(110%); }
+  }
+  @keyframes nudge {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
   }
 }
 
@@ -114,16 +168,83 @@
   background-size: 64px 64px;
 }
 
+/* Every second grid line, slightly stronger — reads as structure, not texture */
+@utility bg-grid-major {
+  background-image:
+    linear-gradient(to right, rgb(214 170 141 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(214 170 141 / 0.05) 1px, transparent 1px);
+  background-size: 128px 128px;
+}
+
+/* Almost invisible film grain */
+@utility bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Oversized outlined serif word behind a section */
+@utility watermark {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(6.5rem, 17vw, 16rem);
+  line-height: 0.8;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1px rgb(214 170 141 / 0.08);
+  user-select: none;
+}
+
+/* Node travelling along an `offset-path` (see OrbitalGraphic) */
+@utility orbit-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  offset-rotate: 0deg;
+  offset-distance: var(--o, 0%);
+  background: rgb(214 170 141 / 0.55);
+  box-shadow: 0 0 10px 1px rgb(214 170 141 / 0.25);
+}
+
+@utility orbit-node-lead {
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+  box-shadow:
+    0 0 0 4px rgb(214 170 141 / 0.08),
+    0 0 18px 2px rgb(214 170 141 / 0.3);
+}
+
+/* Text link whose underline draws in from the left on hover / focus */
+@utility link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition:
+    background-size 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 200ms ease;
+  &:hover,
+  &:focus-visible {
+    background-size: 100% 1px;
+  }
+}
+
+/* Warm glow on an icon when its link / button / card is hovered */
+@utility icon-glow {
+  transition:
+    color 200ms ease,
+    filter 250ms ease;
+  :is(a, button, .group\/card):hover & {
+    filter: drop-shadow(0 0 6px rgb(214 170 141 / 0.55));
+  }
+}
+
 @utility bg-dots {
   background-image: radial-gradient(rgb(214 170 141 / 0.12) 1px, transparent 1px);
   background-size: 16px 16px;
-}
-
-/* Navbar surface once scrolled */
-@utility glass {
-  background-color: rgb(13 13 13 / 0.78);
-  backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
 }
 
 @layer base {
@@ -135,11 +256,11 @@
   }
 
   body {
-    /* Warm glow at the top of the page + an almost invisible film grain */
-    background:
-      radial-gradient(ellipse 70rem 40rem at 50% -12rem, rgb(214 170 141 / 0.12), transparent 70%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-      var(--background);
+    /*
+     * Transparent on purpose: an opaque body would paint over the fixed
+     * <AmbientBackground> layer (negative z-index). The base color lives on <html>.
+     */
+    background: transparent;
     color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;

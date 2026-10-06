@@ -4,6 +4,24 @@ import { Download, Menu, X } from 'lucide-react'
 import { useActiveSection } from '../hooks/useActiveSection.js'
 import { useScrolled } from '../hooks/useScrolled.js'
 import { EASE, SPRING } from './Reveal.jsx'
+
+// Navbar surface: transparent over the hero, a dark translucent bar once scrolling.
+// Fast (220ms) and color-only, so it never competes with the page.
+const SURFACE = {
+  clear: {
+    backgroundColor: 'rgba(13, 13, 13, 0)',
+    borderColor: 'rgba(214, 170, 141, 0)',
+    backdropFilter: 'blur(0px) saturate(100%)',
+    boxShadow: '0 12px 32px -24px rgba(0, 0, 0, 0)',
+  },
+  solid: {
+    backgroundColor: 'rgba(13, 13, 13, 0.72)',
+    borderColor: 'rgba(214, 170, 141, 0.1)',
+    backdropFilter: 'blur(14px) saturate(130%)',
+    boxShadow: '0 12px 32px -24px rgba(0, 0, 0, 0.9)',
+  },
+}
+const NAV_PILL = { type: 'spring', stiffness: 520, damping: 40, mass: 0.6 }
 import { cn } from '../utils/format.js'
 
 export default function Navbar({ profile, sections, resumeUrl, resumeFileName }) {
@@ -38,18 +56,20 @@ export default function Navbar({ profile, sections, resumeUrl, resumeFileName })
       transition={{ duration: 0.7, ease: EASE }}
       className="fixed inset-x-0 top-0 z-50"
     >
-      <div
-        className={cn(
-          'border-b transition-[background-color,border-color] duration-300',
-          scrolled || open ? 'glass border-line-soft' : 'border-transparent bg-transparent',
-        )}
+      <motion.div
+        initial={false}
+        animate={scrolled || open ? 'solid' : 'clear'}
+        variants={SURFACE}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+        className="border-b"
       >
         <nav aria-label="Primary" className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
           <a href="#top" className="group flex items-center gap-2.5 rounded-lg" onClick={() => setOpen(false)}>
             <span className="grid size-9 place-items-center rounded-xl border border-line bg-card font-mono text-xs font-semibold tracking-tight text-accent transition-colors duration-200 group-hover:border-line-strong">
               {profile.initials ?? '•'}
             </span>
-            <span className="text-[0.95rem] font-medium tracking-tight text-fg">{profile.firstName ?? 'Portfolio'}</span>
+            {/* Tablet (md–lg): the nav row is tight, so the monogram carries the brand; the name stays for screen readers */}
+            <span className="text-[0.95rem] font-medium tracking-tight text-fg md:max-lg:sr-only">{profile.firstName ?? 'Portfolio'}</span>
           </a>
 
           <ul className="hidden items-center gap-0.5 md:flex">
@@ -61,17 +81,18 @@ export default function Navbar({ profile, sections, resumeUrl, resumeFileName })
                     href={`#${s.id}`}
                     aria-current={isActive ? 'true' : undefined}
                     className={cn(
-                      'relative block rounded-full px-3.5 py-2 text-sm transition-colors duration-200',
-                      isActive ? 'text-accent' : 'text-muted hover:text-accent',
+                      'relative block rounded-full px-3.5 py-2 text-sm transition-colors duration-150',
+                      isActive ? 'text-accent' : 'text-muted hover:bg-accent/[0.04] hover:text-fg',
                     )}
                   >
                     {isActive && (
                       <motion.span
                         layoutId="nav-active"
-                        className="absolute inset-0 -z-10 rounded-full bg-accent/[0.08]"
-                        transition={SPRING}
+                        className="absolute inset-0 -z-10 rounded-full bg-accent/[0.08] ring-1 ring-accent/15 ring-inset"
+                        transition={NAV_PILL}
                       >
-                        <span className="absolute -bottom-px left-1/2 h-px w-5 -translate-x-1/2 bg-accent" />
+                        {/* Tiny indicator: a short warm tick under the label */}
+                        <span className="absolute bottom-1 left-1/2 h-px w-3 -translate-x-1/2 rounded-full bg-accent/80" />
                       </motion.span>
                     )}
                     {s.label}
@@ -117,7 +138,7 @@ export default function Navbar({ profile, sections, resumeUrl, resumeFileName })
             </button>
           </div>
         </nav>
-      </div>
+      </motion.div>
 
       <AnimatePresence>
         {open && (

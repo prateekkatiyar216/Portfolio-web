@@ -2,6 +2,7 @@ import { MotionConfig } from 'motion/react'
 import AmbientBackground from './components/AmbientBackground.jsx'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
+import ScrollCat from './components/cat/ScrollCat.jsx'
 import Hero from './sections/Hero.jsx'
 import About from './sections/About.jsx'
 import Experience from './sections/Experience.jsx'
@@ -33,6 +34,7 @@ export default function App({ data }) {
       </a>
 
       <AmbientBackground />
+      <ScrollCat />
 
       <Navbar profile={data.profile} sections={sections} resumeUrl={data.resumeUrl} resumeFileName={data.resumeFileName} />
 

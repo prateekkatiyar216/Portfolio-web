@@ -21,6 +21,7 @@ Single-page, dark-first portfolio with these sections, each rendered only when t
 - **Motion** (`motion/react`) — entrance, scroll-reveal, stagger, card/button hover, nav indicator, parallax, count-up
 - **Lucide React** — UI icons; **simple-icons** — brand glyphs (tree-shaken, only used icons ship)
 - **SheetJS (`xlsx`)** — reads the workbook **at build time only**; it is not shipped to visitors
+- **three.js** + **React Three Fiber** + **Drei** — the scroll cat only; lazy-loaded on wide screens, never on mobile
 
 ## 3. Folder structure
 
@@ -145,6 +146,16 @@ Either:
 - add an `Image` column to the `Projects` sheet with a path such as `projects/my-shot.png` or a full URL.
 
 Projects without an image get a generated visual in the site's accent palette. 16:9 images around 1200×675 work best.
+
+## 11. The scroll cat
+
+On screens ≥ 1280px a small 3D cat lives in the right-hand gutter (`src/components/cat/`). It rests while you read; when you scroll it gets up, walks along the page (turning round when you scroll back up), and lies down again shortly after you stop. Below 1280px there's no free gutter, so the 3D code is never downloaded and a tiny static silhouette rests on the footer line instead.
+
+- **Use your own model:** put a rigged, animated GLB at **`public/models/cat.glb`** (facing +z, or set `CAT.model.rotationY`). It is auto-scaled and replaces the built-in low-poly cat. Clips are matched by name (walk, stand up, lie down, rest/sleep, idle). Set exact names in `CAT.clips` if auto-detection picks the wrong ones; in dev the console lists the clips found and which are used.
+- **Clips needed for the full behaviour:** a looping **walk** (required — without it the cat stays put rather than sliding), a one-shot **lie-down**, and ideally a one-shot **stand-up** and a looping **rest**. Missing ones fall back to crossfades.
+- **Foot sliding:** if the feet slip, tune `CAT.walk.stride` (screen distance per walk cycle).
+- **If the file is missing or broken**, the built-in cat (with its own walk / stand / lie / rest clips) is shown and the page is unaffected.
+- **Tuning:** path, speeds, timings, fades and colours are all in `src/components/cat/catConfig.js`.
 
 ## Customising the design
 

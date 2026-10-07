@@ -343,6 +343,31 @@
 }
 
 /*
+ * Scroll cat (components/cat). Lives in the gutter right of the max-w-6xl
+ * column and is sized from it, so it never reaches into the text. z-index -10:
+ * above the ambient background (-20), below all page content. Its frame loop
+ * moves it with `transform` only; the sideways sway is limited to the free
+ * space this `right` offset leaves (read by CatCharacter on resize).
+ */
+.scroll-cat {
+  --cat-gutter: calc((100vw - 1rem - 72rem) / 2 + 2rem); /* free space incl. the column's padding */
+  --cat-w: clamp(6.5rem, var(--cat-gutter), 9.5rem);
+  position: fixed;
+  top: 0;
+  right: max(0px, (var(--cat-gutter) - var(--cat-w)) / 2);
+  z-index: -10;
+  width: var(--cat-w);
+  height: calc(var(--cat-w) * 0.8); /* CAT.aspect */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease-out;
+  will-change: transform;
+}
+.scroll-cat[data-ready] {
+  opacity: 1;
+}
+
+/*
  * Animation budget.
  * 1. Sections scrolled out of view pause their CSS loops (set by usePauseOffscreen).
  * 2. While the visitor works with a foreground element (profile card, featured
